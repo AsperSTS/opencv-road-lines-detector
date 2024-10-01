@@ -1,4 +1,4 @@
-# Highway Lane Detection with Point Operators
+# Highway Lane Detection with Image Processing Operators
 
 This project implements a Python program to detect highway lane lines in videos using custom image processing operators. The focus is on using point operators (such as gamma correction, histogram equalization, and color masks) without relying on high-level OpenCV functions.
 
