@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+import argparse
+
+
 
 def fill_polygon(mask, points, color=255):
     """
@@ -139,8 +142,25 @@ def binarize_frame(image, threshold_value, max_value):
     return binary_image
    
 def main():
+    parser = argparse.ArgumentParser(description='Para ejecutar el codigo se necesita la ruta de video, el modo de ejecucion por defecto seria exportar el video  ')
+
+    parser.add_argument('-m', '--modo',
+                        type= int,
+                        choices=[1,2],
+                        default=2, required=False,
+                        help='Modos: 1 = Ver video en tiempo real, 2 = Exportar video como archivo mp4 \n Ej: python main.py -m 1')
+
+    parser.add_argument('-v', '--video',
+                        type=str,
+                        default='lineas.mp4', required=True,
+                        help='Ej: python main.py -v "video.py"')
+
+
+    args = vars(parser.parse_args())
+    
+    print(f"{args['modo']}, {args['video']}")
     # Abrimos el video 
-    video = cv2.VideoCapture('lineas.mp4')
+    video = cv2.VideoCapture(args["video"])
 
     # Obtenemos los fps del video para poder calcular la pausa del video
     fps = video.get(cv2.CAP_PROP_FPS)
@@ -193,11 +213,17 @@ def main():
     fill_polygon(vanishing_lines_mask, polygon_points)
     
     # Variables normalizadas
-    gamma = 3  # Valor inicial de gamma
+    gamma = 6  # Valor inicial de gamma
     is_paused = False
     previous_hist = None  # Histograma anterior
     change_threshold = 0.05  # Umbral de cambio
     tmp = 0
+
+
+    out = cv2.VideoWriter('lineasProcesado.avi',  
+                         cv2.VideoWriter_fourcc(*'MJPG'), 
+                         25, (width, height)) 
+
 
     while True:
         if not is_paused:
@@ -233,9 +259,9 @@ def main():
             # Aplicamos ecualizacion del histograma pasandole el frame normalizado
             v_equalized = equalize_histogram(v_autocontrast)
             # Aplicamos el operador gamma 
-
             
             v_gamma_corrected = _gamma(v_equalized, gamma)
+            
             # Actualizar directamente el canal V en hsv_frame
             hsv_frame[..., 2] = v_gamma_corrected
             # Obtenemos el frame en BGR para testeos
@@ -260,8 +286,11 @@ def main():
             # Aplicamos la mascara que contiene nuestras lineas de fuga al frame
             masked_frame = cv2.bitwise_and(frame_binary, frame_binary, mask=vanishing_lines_mask)
             # Mostramos el frame 
-            cv2.imshow('Processed Video', masked_frame)
-            # cv2.imshow('Normalized Video', frame_enhanced)
+            if args['modo'] == 2:
+                cv2.imshow('Processed Video', masked_frame)
+            else:
+                out.write(cv2.cvtColor(masked_frame, cv2.COLOR_GRAY2BGR))
+            
         
         # Capturar eventos de teclado
         key = cv2.waitKey(int(1000 / fps)) & 0xFF
@@ -270,10 +299,12 @@ def main():
             break
         elif key == ord(' '):  # Pausar/Reanudar al presionar la barra espaciadora
             is_paused = not is_paused
-
+    
     # Liberar recursos
     video.release()
+    out.release()
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
+    
     main()
