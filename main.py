@@ -213,17 +213,12 @@ def main():
     fill_polygon(vanishing_lines_mask, polygon_points)
     
     # Variables normalizadas
-    gamma = 6  # Valor inicial de gamma
+    gamma = 9  # Valor inicial de gamma
     is_paused = False
-    previous_hist = None  # Histograma anterior
-    change_threshold = 0.05  # Umbral de cambio
-    tmp = 0
-
 
     out = cv2.VideoWriter('lineasProcesado.avi',  
                          cv2.VideoWriter_fourcc(*'MJPG'), 
                          25, (width, height)) 
-
 
     while True:
         if not is_paused:
@@ -234,25 +229,6 @@ def main():
                 break
             # Convertimos el cuadro a otro espacio de color
             hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            
-            # # Calculamos el histograma del canal v donde vamos a trabajar
-            # hist = cv2.calcHist([hsv_frame[...,2]], [0], None, [256], [0, 256]).flatten()
-            # # Comprobamos si existe histograma anterior
-            # if previous_hist is not None:
-            #     # Normalizamos la diferencia entre el histograma actual y el anterior
-            #     hist_diff = np.abs(hist - previous_hist) / (np.sum(hist) + 1e-6)  
-            #     # Calculamos el cambio total de la diferencia entre histogramas
-            #     total_change = np.sum(hist_diff)
-            #     # Calculamos el cambio en la variable de cambio
-            #     if total_change < change_threshold:
-            #         tmp -= 1
-            #     elif total_change > change_threshold:
-            #         tmp += 1
-            #     tmp = max(0, min(tmp, 30)) 
-
-            #     print(f"Changes: {total_change}, Var: {tmp}")
-            # # Actualizamos el hisograma previo con el actual        
-            # previous_hist = hist
             
             # Normalizar el canal V antes de aplicar gamma
             v_autocontrast = restricted_autocontrast(hsv_frame[...,2])
@@ -268,8 +244,6 @@ def main():
             bgr_result = cv2.cvtColor(hsv_frame, cv2.COLOR_HSV2BGR)
             # Creamos las mascaras de color con los rangos definidosanteriormente
             mask_yellow, mask_white = create_color_mask(lower_white, upper_white, lower_yellow, upper_yellow, hsv_frame) 
-            
-            # frame_enhanced = cv2.cvtColor(hsv_corrected, cv2.COLOR_HSV2BGR) # Variables de prueba
                         
             # Aplicar la máscara de color a la imagen original
             color_mask = cv2.bitwise_or(mask_yellow, mask_white)
@@ -278,10 +252,8 @@ def main():
             # Convertimos el frame a escala de grises para obtener la máscara de líneas de fuga
             result_gray = cv2.cvtColor(two_mask_result, cv2.COLOR_BGR2GRAY)
             
-            # binarization_threshold = 50 + tmp  # Ajusta el umbral base en función de los cambios
             # Binarizamos el resultado~
             frame_binary = binarize_frame(result_gray, 0, 255)
-            # frame_binary = binarize_frame(result_gray, binarization_threshold, 255)
             
             # Aplicamos la mascara que contiene nuestras lineas de fuga al frame
             masked_frame = cv2.bitwise_and(frame_binary, frame_binary, mask=vanishing_lines_mask)
